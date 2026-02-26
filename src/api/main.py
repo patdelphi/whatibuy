@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pydantic import BaseModel
 import sqlite3
+import csv
+import io
 from src.api.database import get_db_connection
 
 app = FastAPI(title="WhatIBuy API", description="API for WhatIBuy Shopping Analysis", version="0.1.0")
@@ -66,6 +69,7 @@ def get_orders(
     page: int = 1, 
     limit: int = 100, 
     platform: Optional[str] = None,
+    status: Optional[str] = None,
     search: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
@@ -83,6 +87,11 @@ def get_orders(
         query += " AND platform = ?"
         count_query += " AND platform = ?"
         params.append(platform)
+        
+    if status:
+        query += " AND status = ?"
+        count_query += " AND status = ?"
+        params.append(status)
         
     if search:
         query += " AND (shop_name LIKE ? OR order_id LIKE ?)"
@@ -141,6 +150,98 @@ def get_orders(
         "limit": limit
     }
 
+@app.get("/api/orders/export")
+def export_orders(
+    platform: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = "SELECT * FROM orders WHERE 1=1"
+    params = []
+    
+    if platform:
+        query += " AND platform = ?"
+        params.append(platform)
+
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+        
+    if search:
+        query += " AND (shop_name LIKE ? OR order_id LIKE ?)"
+        search_term = f"%{search}%"
+        params.extend([search_term, search_term])
+
+    if start_date:
+        query += " AND order_date >= ?"
+        params.append(start_date)
+
+    if end_date:
+        query += " AND order_date <= ?"
+        params.append(end_date)
+        
+    query += " ORDER BY order_date DESC"
+    
+    orders = cursor.execute(query, params).fetchall()
+    
+    # Prepare CSV stream
+    output = io.StringIO()
+    # Add BOM for Excel compatibility with UTF-8
+    output.write('\ufeff')
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow(['Order ID', 'Date', 'Platform', 'Shop Name', 'Status', 'Total Amount', 'Product Title', 'Quantity', 'Price'])
+    
+    for order in orders:
+        order_dict = dict(order)
+        # Ensure order_id is treated as string in Excel by prepending tab or single quote
+        order_id = f"\t{order_dict['order_id']}" 
+        # Fetch items
+        items = cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (order_dict['id'],)).fetchall()
+        
+        if not items:
+            # Order without items
+            writer.writerow([
+                order_id,
+                order_dict.get('order_date'),
+                order_dict.get('platform'),
+                order_dict.get('shop_name'),
+                order_dict.get('status'),
+                order_dict.get('total_amount'),
+                '', '', ''
+            ])
+        else:
+            for item in items:
+                item_dict = dict(item)
+                writer.writerow([
+                    order_id,
+                    order_dict.get('order_date'),
+                    order_dict.get('platform'),
+                    order_dict.get('shop_name'),
+                    order_dict.get('status'),
+                    order_dict.get('total_amount'),
+                    item_dict.get('product_title'),
+                    item_dict.get('quantity'),
+                    item_dict.get('product_price')
+                ])
+                
+    conn.close()
+    
+    output.seek(0)
+    
+    response = StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=orders_export.csv"}
+    )
+    return response
+
 @app.get("/api/stats", response_model=ConsumptionStats)
 def get_stats(
     start_date: Optional[str] = None,
@@ -149,7 +250,8 @@ def get_stats(
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    where_clause = "WHERE 1=1"
+    # Filter only successful transactions
+    where_clause = "WHERE status = '交易成功'"
     params = []
     
     if start_date:

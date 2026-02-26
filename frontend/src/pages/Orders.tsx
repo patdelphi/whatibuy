@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { api, Order } from '../services/api';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 export const Orders: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [platformFilter, setPlatformFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
     
     // Pagination and Filtering State
     const [page, setPage] = useState(1);
@@ -23,6 +24,7 @@ export const Orders: React.FC = () => {
                     page, 
                     limit, 
                     platformFilter || undefined, 
+                    statusFilter || undefined,
                     searchTerm || undefined,
                     startDate || undefined,
                     endDate || undefined
@@ -38,12 +40,23 @@ export const Orders: React.FC = () => {
 
         const debounce = setTimeout(fetchOrders, 300);
         return () => clearTimeout(debounce);
-    }, [searchTerm, platformFilter, page, startDate, endDate]);
+    }, [searchTerm, platformFilter, statusFilter, page, startDate, endDate]);
 
     // Reset page when filters change
     useEffect(() => {
         setPage(1);
-    }, [searchTerm, platformFilter, startDate, endDate]);
+    }, [searchTerm, platformFilter, statusFilter, startDate, endDate]);
+
+    const handleExport = () => {
+        const url = api.exportOrders(
+            platformFilter || undefined, 
+            statusFilter || undefined,
+            searchTerm || undefined,
+            startDate || undefined,
+            endDate || undefined
+        );
+        window.open(url, '_blank');
+    };
 
     const totalPages = Math.ceil(total / limit);
 
@@ -78,6 +91,23 @@ export const Orders: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <Filter size={18} className="text-gray-500" />
+                        <select 
+                            className="bg-gray-50 border border-gray-200 text-sm rounded-lg p-2 outline-none"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="">所有状态</option>
+                            <option value="交易成功">交易成功</option>
+                            <option value="待发货">待发货</option>
+                            <option value="待付款">待付款</option>
+                            <option value="交易关闭">交易关闭</option>
+                            <option value="已签收">已签收</option>
+                            <option value="双方已评">双方已评</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                         <Calendar size={18} className="text-gray-500" />
                         <input 
                             type="date" 
@@ -96,6 +126,14 @@ export const Orders: React.FC = () => {
                         />
                     </div>
                 </div>
+
+                <button 
+                    onClick={handleExport}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                >
+                    <Download size={18} />
+                    导出 CSV
+                </button>
             </div>
 
             {/* Table */}

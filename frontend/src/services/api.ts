@@ -37,9 +37,10 @@ export interface OrderListResponse {
 }
 
 export const api = {
-    getOrders: async (page = 1, limit = 100, platform?: string, search?: string, startDate?: string, endDate?: string) => {
+    getOrders: async (page = 1, limit = 100, platform?: string, status?: string, search?: string, startDate?: string, endDate?: string) => {
         const params: any = { page, limit };
         if (platform) params.platform = platform;
+        if (status) params.status = status;
         if (search) params.search = search;
         if (startDate) params.start_date = startDate;
         if (endDate) params.end_date = endDate;
@@ -55,5 +56,18 @@ export const api = {
         
         const response = await axios.get<ConsumptionStats>(`${API_BASE_URL}/stats`, { params });
         return response.data;
+    },
+
+    exportOrders: (platform?: string, status?: string, search?: string, startDate?: string, endDate?: string) => {
+        const params: any = {};
+        if (platform) params.platform = platform;
+        if (status) params.status = status;
+        if (search) params.search = search;
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+
+        // Construct query string manually to open in new window or use as href
+        const queryString = new URLSearchParams(params).toString();
+        return `${API_BASE_URL}/orders/export?${queryString}`;
     }
 };

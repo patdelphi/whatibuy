@@ -1,3 +1,4 @@
+import sys
 from playwright.sync_api import sync_playwright
 import sqlite3
 import os
@@ -10,7 +11,50 @@ DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__)
 DEBUG_HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'debug_taobao.html')
 USER_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'user_data')
 
+def init_tables(conn):
+    """Initializes the database tables."""
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform TEXT NOT NULL,
+            order_id TEXT NOT NULL,
+            order_date TEXT,
+            total_amount REAL,
+            status TEXT,
+            shop_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(platform, order_id)
+        );
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER,
+            product_title TEXT,
+            product_price REAL,
+            quantity INTEGER,
+            product_url TEXT,
+            image_url TEXT,
+            category TEXT,
+            FOREIGN KEY(order_id) REFERENCES orders(id)
+        );
+    ''')
+    conn.commit()
+    print("Database tables initialized.")
+
+def clear_tables(conn):
+    """Clears all data from tables."""
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS order_items")
+    cursor.execute("DROP TABLE IF EXISTS orders")
+    conn.commit()
+    print("Database tables dropped.")
+    init_tables(conn)
+
 def get_db_connection():
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -39,7 +83,7 @@ def validate_amount(amount):
     """Ensures amount is a valid positive float."""
     try:
         val = float(amount)
-        if val >= 0:
+        if val >= 0 and val < 10000000: # Add reasonable upper limit (10 million)
             return val
     except (ValueError, TypeError):
         pass
@@ -50,7 +94,7 @@ def check_order_exists(cursor, order_id):
     cursor.execute("SELECT 1 FROM orders WHERE platform = ? AND order_id = ?", ("Taobao", order_id))
     return cursor.fetchone() is not None
 
-def scrape_taobao():
+def scrape_taobao(mode_arg=None):
     print("Starting Taobao scraper...")
     
     # User Prompt Logic
@@ -61,7 +105,11 @@ def scrape_taobao():
     print("3. 跳过抓取 (Skip) - 直接退出")
     print("-" * 50)
     
-    mode = input("请输入选项 (1/2/3): ").strip()
+    if mode_arg:
+        mode = str(mode_arg)
+        print(f"Using mode from argument: {mode}")
+    else:
+        mode = input("请输入选项 (1/2/3): ").strip()
     
     if mode == '3':
         print("已跳过抓取。")
@@ -72,8 +120,16 @@ def scrape_taobao():
     
     if incremental_mode:
         print(">> 已启用增量抓取模式。如果遇到已存在的订单，抓取将自动停止。")
+        # Ensure tables exist
+        conn = get_db_connection()
+        init_tables(conn)
+        conn.close()
     else:
         print(">> 已启用全量抓取模式。")
+        # Clear DB for full scrape
+        conn = get_db_connection()
+        clear_tables(conn)
+        conn.close()
 
     with sync_playwright() as p:
         # Launch browser in headful mode for manual login
@@ -122,29 +178,53 @@ def scrape_taobao():
         print("2. 确保页面跳转到'已买到的宝贝' (订单列表页)")
         print("-" * 50)
         
+        print("Waiting for login... (Will automatically proceed when 'list_bought_items.htm' is detected)")
+        
+        login_check_start = time.time()
+        last_url = ""
         while True:
-            input("当您在浏览器中看到订单列表后，请按回车键继续...")
-            print("正在确认页面状态...")
-            current_url = page.url
-            if "list_bought_items.htm" in current_url:
-                print(f"页面确认成功！(URL: {current_url})")
-                break
-            else:
-                print(f"警告：当前页面似乎不是订单列表页 (URL: {current_url})")
-                print("请在浏览器中手动跳转到'已买到的宝贝'，或者等待页面加载完成。")
-                choice = input("输入 'r' 重试检查，输入 'g' 尝试强制跳转，输入 'q' 退出: ").strip().lower()
-                if choice == 'g':
-                    print("尝试自动跳转到订单页面...")
+            # Check all pages in the context (sometimes login opens a new tab)
+            target_page = None
+            try:
+                for p in context.pages:
                     try:
-                        page.goto("https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm")
-                        time.sleep(3)
-                    except Exception as e:
-                        print(f"跳转请求已发送: {e}")
-                        time.sleep(3)
-                elif choice == 'q':
-                    print("用户取消操作。")
-                    context.close()
-                    return
+                        url = p.url
+                        title = p.title()
+                        if "list_bought_items.htm" in url or "已买到的宝贝" in title:
+                            target_page = p
+                            break
+                    except:
+                        pass
+            except:
+                pass
+            
+            if target_page:
+                page = target_page
+                # Ensure the page is active
+                try:
+                    page.bring_to_front()
+                except:
+                    pass
+                print(f"页面确认成功！(URL: {page.url})")
+                break
+            
+            # Check current page (fallback)
+            try:
+                current_url = page.url
+            except:
+                current_url = ""
+
+            if current_url != last_url:
+                print(f"Current URL: {current_url} - Waiting for order list...")
+                last_url = current_url
+            
+            # Check timeout (e.g. 10 minutes)
+            if time.time() - login_check_start > 600:
+                print("Login timeout. Exiting.")
+                context.close()
+                return
+
+            time.sleep(2)
 
         print("Login successful. Starting data extraction...")
         
@@ -256,16 +336,29 @@ def scrape_taobao():
                         if price_match:
                             total_amount = float(price_match.group(0))
                     
-                    # Strategy B: Look for generic price if Real Payment not found
+                    # Strategy B: Text Regex for "实付款" (More reliable fallback)
                     if total_amount == 0.0:
-                        price_els = order.query_selector_all('[class*="price-integer"], [class*="price-decimal"]')
-                        if price_els:
-                            # Construct price from parts if split
-                            full_price_text = "".join([el.inner_text() for el in price_els])
-                            try:
-                                total_amount = float(re.search(r'[\d\.]+', full_price_text).group(0))
-                            except:
+                        text_content = order.inner_text()
+                        # Matches "实付款：￥123.45" or similar
+                        # Also handle possible spaces inside number (though rare)
+                        price_match = re.search(r'实付款.*?([0-9]+(?:\.[0-9]+)?)', text_content.replace('\n', '').replace(' ', ''))
+                        if price_match:
+                             try:
+                                total_amount = float(price_match.group(1))
+                             except:
                                 pass
+                                
+                    # Strategy C: Last resort - look for price elements but be careful
+                    if total_amount == 0.0:
+                        # Try to find elements that are likely the total price (often bold or specific class)
+                        # Instead of joining all, let's try to find the one near "实付款"
+                        try:
+                            # Use evaluate to find element with text containing "实付款"
+                            # This is complex in playwright without robust selectors. 
+                            # Let's stick to the text regex above as main fallback.
+                            pass 
+                        except:
+                            pass
 
                     # --- 5. Product Title Parsing ---
                     # Strategy A: data-spm="suborder_itemtitle"
@@ -296,6 +389,31 @@ def scrape_taobao():
                                  break
                                  
                     # --- Validation & Storage ---
+                    if order_id == "746737027443604282" or order_id == "12153969408604200":
+                        print(f"\n[DEBUG] Found target order: {order_id}")
+                        print(f"[DEBUG] Extracted Price: {total_amount}")
+                        print(f"[DEBUG] Extracted Date: {order_date}")
+                        print(f"[DEBUG] Extracted Shop: {shop_name}")
+                        print(f"[DEBUG] Extracted Status: {status}")
+                        
+                        # Save HTML for analysis
+                        try:
+                            debug_file = os.path.join(os.path.dirname(DB_PATH), f"debug_order_{order_id}.html")
+                            with open(debug_file, "w", encoding="utf-8") as f:
+                                f.write(order.evaluate("el => el.outerHTML"))
+                            print(f"[DEBUG] HTML saved to: {debug_file}")
+                            
+                            # Print parsing details
+                            price_real_el = order.query_selector('[class*="priceReal"], [class*="realPay"]')
+                            if price_real_el:
+                                print(f"[DEBUG] Strategy A Element Text: {price_real_el.inner_text()}")
+                            else:
+                                print("[DEBUG] Strategy A Element: Not Found")
+                                
+                            print(f"[DEBUG] Order Inner Text:\n{order.inner_text()}")
+                        except Exception as e:
+                            print(f"[DEBUG] Failed to save debug info: {e}")
+
                     if order_id != "Unknown" and validate_date(order_date):
                         total_amount = validate_amount(total_amount)
                         
@@ -360,75 +478,107 @@ def scrape_taobao():
             
             prev_page_order_ids = current_page_order_ids
 
+            # Scroll to bottom to ensure pagination is visible
+            page.keyboard.press("End")
+            time.sleep(1)
+
             # Pagination Logic
             try:
-                next_btn = page.get_by_role("button", name="下一页")
+                next_btn = None
                 
-                if not next_btn or not next_btn.is_visible():
-                    next_btn = page.query_selector("button.pagination-next, li.pagination-next, .next-pagination-item")
-                
-                if not next_btn and not page.get_by_text("下一页").is_visible():
-                    print("Next button not found. Looking for numeric pagination...")
-                    current_page_el = page.query_selector(".pagination-item-active, .active")
-                    if current_page_el:
-                        try:
-                            current_page_num = int(current_page_el.inner_text())
-                            next_page_num = current_page_num + 1
-                            
-                            next_num_btn = page.get_by_text(str(next_page_num), exact=True)
-                            if next_num_btn.is_visible():
-                                next_btn = next_num_btn
-                            else:
-                                next_num_btn = page.locator(f"//a[text()='{next_page_num}'] | //button[text()='{next_page_num}']")
-                                if next_num_btn.count() > 0:
-                                    next_btn = next_num_btn.first
-                        except ValueError:
-                            pass
-                
-                if next_btn:
-                    is_disabled = False
-                    if hasattr(next_btn, 'is_disabled'):
-                        is_disabled = next_btn.is_disabled()
-                    elif hasattr(next_btn, 'get_attribute'):
-                        is_disabled = next_btn.get_attribute("disabled") is not None or "disabled" in (next_btn.get_attribute("class") or "")
+                # Strategy 2: Numeric Pagination (Next Number) - PRIMARY STRATEGY
+                if not next_btn:
+                    # Assume current page is page_num
+                    next_page_num = page_num + 1
+                    print(f"Looking for page {next_page_num}...")
+                    
+                    # Try to find the number in common pagination containers
+                    # rc-pagination, .pagination, etc.
+                    # Strict exact match for the number to avoid matching order IDs or prices
+                    
+                    # 1. Try generic "text=N" but filter by tag
+                    # Only click a, button, li
+                    candidates = page.locator("a, button, li").filter(has_text=re.compile(f"^{next_page_num}$"))
+                    
+                    if candidates.count() > 0:
+                        print(f"[DEBUG] Found {candidates.count()} candidates for page {next_page_num}")
+                        for i in range(candidates.count()):
+                            cand = candidates.nth(i)
+                            if cand.is_visible():
+                                # Verify it's inside a pagination container if possible
+                                # Or just try it if it looks safe
+                                next_btn = cand
+                                print(f"Found next page number {next_page_num} (Candidate {i})")
+                                break
+                    
+                    # 2. Try searching within specific pagination containers if 1 failed
+                    if not next_btn:
+                        pagination_containers = [
+                            ".pagination", ".rc-pagination", ".next-pagination", 
+                            "ul[class*='pagination']", "div[class*='pagination']"
+                        ]
+                        for container in pagination_containers:
+                            if next_btn: break
+                            try:
+                                cont = page.locator(container)
+                                if cont.count() > 0:
+                                    target = cont.get_by_text(str(next_page_num), exact=True)
+                                    if target.count() > 0 and target.first.is_visible():
+                                        next_btn = target.first
+                                        print(f"Found next page number {next_page_num} inside {container}")
+                            except:
+                                pass
 
-                    if not is_disabled:
-                        print("Navigating to next page...")
-                        next_btn.click()
-                        time.sleep(random.uniform(3, 6)) 
-                        page_num += 1
-                    else:
-                        print("Next button/page is disabled. Reached end.")
-                        break
+                # Strategy 1: Specific Button/Link with "下一页" text (FALLBACK)
+                if not next_btn:
+                     # Often it's <button> or <li class="item next"> or <a class="next">
+                     # Also check standard Taobao pagination classes
+                     potential_next = page.locator("button, a, li").filter(has_text=re.compile(r"下一页|Next"))
+                     
+                     # Debug pagination
+                     print(f"[DEBUG] Found {potential_next.count()} potential 'Next' buttons.")
+                     
+                     # Iterate to find the visible and enabled one
+                     count = potential_next.count()
+                     for i in range(count):
+                         el = potential_next.nth(i)
+                         if el.is_visible():
+                             # Check if disabled
+                             class_attr = el.get_attribute("class") or ""
+                             disabled_attr = el.get_attribute("disabled")
+                             if "disabled" not in class_attr and disabled_attr is None:
+                                 next_btn = el
+                                 print(f"Found '下一页' button using Strategy 1 (index {i})")
+                                 break
+                             else:
+                                 print(f"[DEBUG] Potential Next button {i} ignored: class={class_attr}, disabled={disabled_attr}")
+
+                # Strategy 3: Generic 'next' class search (rc-pagination-next)
+                if not next_btn:
+                     next_class_btn = page.locator(".rc-pagination-next, .next-pagination-item, .next")
+                     if next_class_btn.count() > 0:
+                         for i in range(next_class_btn.count()):
+                             btn = next_class_btn.nth(i)
+                             if btn.is_visible() and "disabled" not in (btn.get_attribute("class") or ""):
+                                 next_btn = btn
+                                 print("Found next button using Strategy 3 (class name)")
+                                 break
+
+                if next_btn:
+                    print("Navigating to next page...")
+                    try:
+                        # Try normal click
+                        next_btn.click(timeout=3000)
+                    except Exception as e:
+                        print(f"Normal click failed: {e}. Trying JS click...")
+                        # Fallback to JS click
+                        page.evaluate("arguments[0].click();", next_btn.element_handle())
+                    
+                    time.sleep(random.uniform(3, 6)) 
+                    page_num += 1
                 else:
-                    # More careful check for next text
-                    next_text_loc = page.locator("text=下一页")
-                    if next_text_loc.count() > 0:
-                        # Check if any of these are visible and likely clickable
-                        clicked = False
-                        for i in range(next_text_loc.count()):
-                             el = next_text_loc.nth(i)
-                             if el.is_visible():
-                                 # Check if parent is disabled button
-                                 # This is hard to do perfectly, but usually disabled elements have a class
-                                 # Let's try to click and if it fails or nothing happens, our duplicate check will catch it next loop
-                                 print(f"Found '下一页' text (element {i}), trying to click...")
-                                 try:
-                                     el.click(timeout=3000)
-                                     clicked = True
-                                     time.sleep(4)
-                                     break
-                                 except:
-                                     print("Click failed.")
-                        
-                        if clicked:
-                            page_num += 1
-                        else:
-                            print("Found '下一页' text but could not click or it was disabled.")
-                            break
-                    else:
-                        print("No next page button found.")
-                        break
+                    print("No next page button found (reached end or selector changed).")
+                    break
                         
             except Exception as e:
                 print(f"Pagination error: {e}")
