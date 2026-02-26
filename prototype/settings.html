@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatIBuy - 系统设置</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js" defer></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <span>WhatIBuy</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="nav-link"><span class="nav-icon">📊</span>仪表盘</a></li>
+            <li class="nav-item"><a href="platforms.html" class="nav-link"><span class="nav-icon">🛒</span>平台管理</a></li>
+            <li class="nav-item"><a href="analysis.html" class="nav-link"><span class="nav-icon">📈</span>消费分析</a></li>
+            <li class="nav-item"><a href="chat.html" class="nav-link"><span class="nav-icon">🤖</span>AI 助手</a></li>
+            <li class="nav-item"><a href="settings.html" class="nav-link active"><span class="nav-icon">⚙️</span>系统设置</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <h1 class="page-title">系统设置</h1>
+        </header>
+
+        <div class="grid-2">
+            <!-- AI 配置 -->
+            <div class="card">
+                <h2 class="card-title">AI 配置</h2>
+                <div class="form-group">
+                    <label>AI 服务提供商</label>
+                    <select>
+                        <option>OpenAI</option>
+                        <option>Anthropic (Claude)</option>
+                        <option>Google (Gemini)</option>
+                        <option>Local (Ollama)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" value="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" value="gpt-4-turbo">
+                </div>
+                <div class="form-group">
+                    <label>Base URL (可选)</label>
+                    <input type="text" placeholder="https://api.openai.com/v1">
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()">保存 AI 设置</button>
+            </div>
+
+            <!-- 通用设置 -->
+            <div class="card">
+                <h2 class="card-title">通用设置</h2>
+                <div class="form-group">
+                    <label>数据导出</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn btn-secondary" style="flex: 1;">导出为 JSON</button>
+                        <button class="btn btn-secondary" style="flex: 1;">导出为 CSV</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="color: #ef4444;">危险区域</label>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="if(confirm('您确定吗？这将删除所有本地数据。')) alert('数据已删除')">清除所有数据</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

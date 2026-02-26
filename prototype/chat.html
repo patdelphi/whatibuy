@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatIBuy - AI 助手</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js" defer></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <span>WhatIBuy</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="nav-link"><span class="nav-icon">📊</span>仪表盘</a></li>
+            <li class="nav-item"><a href="platforms.html" class="nav-link"><span class="nav-icon">🛒</span>平台管理</a></li>
+            <li class="nav-item"><a href="analysis.html" class="nav-link"><span class="nav-icon">📈</span>消费分析</a></li>
+            <li class="nav-item"><a href="chat.html" class="nav-link active"><span class="nav-icon">🤖</span>AI 助手</a></li>
+            <li class="nav-item"><a href="settings.html" class="nav-link"><span class="nav-icon">⚙️</span>系统设置</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content" style="display: flex; flex-direction: column; height: 100vh;">
+        <header class="header">
+            <h1 class="page-title">AI 购物助手</h1>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message message-ai">
+                    你好！我是您的 AI 购物助手。我可以帮助您分析所有平台的购物历史。您可以问我任何问题，比如"上个月我买咖啡花了多少钱？"或者"我买过最贵的东西是什么？"
+                </div>
+                <div class="message message-user">
+                    显示我在2023年购买的最贵的3件商品。
+                </div>
+                <div class="message message-ai">
+                    这是您在 2023 年购买的最贵的 3 件商品：
+                    <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                        <li><strong>Apple MacBook Pro M2</strong> - ¥14,999 (京东, 11月11日)</li>
+                        <li><strong>索尼 A7M4 相机</strong> - ¥13,500 (淘宝, 6月18日)</li>
+                        <li><strong>大疆 Mini 3 Pro 无人机</strong> - ¥4,788 (京东, 5月1日)</li>
+                    </ol>
+                    <br>
+                    您想查看这些高价值商品的分类统计吗？
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="输入关于您购物历史的问题..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
+            <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem 1rem; white-space: nowrap;" onclick="document.getElementById('chatInput').value='我在数码产品上花了多少钱？'; sendMessage()">我在数码产品上花了多少钱？</button>
+            <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem 1rem; white-space: nowrap;" onclick="document.getElementById('chatInput').value='对比我在淘宝和京东的消费'; sendMessage()">对比淘宝和京东的消费</button>
+            <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem 1rem; white-space: nowrap;" onclick="document.getElementById('chatInput').value='列出我所有的咖啡订单'; sendMessage()">列出所有咖啡订单</button>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatIBuy - 消费分析</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js" defer></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <span>WhatIBuy</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="nav-link"><span class="nav-icon">📊</span>仪表盘</a></li>
+            <li class="nav-item"><a href="platforms.html" class="nav-link"><span class="nav-icon">🛒</span>平台管理</a></li>
+            <li class="nav-item"><a href="analysis.html" class="nav-link active"><span class="nav-icon">📈</span>消费分析</a></li>
+            <li class="nav-item"><a href="chat.html" class="nav-link"><span class="nav-icon">🤖</span>AI 助手</a></li>
+            <li class="nav-item"><a href="settings.html" class="nav-link"><span class="nav-icon">⚙️</span>系统设置</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <h1 class="page-title">消费分析</h1>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;">导出报表</button>
+            </div>
+        </header>
+
+        <!-- 筛选栏 -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">日期范围</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="date" value="2024-01-01" style="padding: 0.5rem;">
+                        <span>至</span>
+                        <input type="date" value="2024-12-31" style="padding: 0.5rem;">
+                    </div>
+                </div>
+                <div style="width: 150px;">
+                    <label style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">平台</label>
+                    <select style="padding: 0.5rem; width: 100%;">
+                        <option value="all">全部平台</option>
+                        <option value="taobao">淘宝</option>
+                        <option value="jd">京东</option>
+                        <option value="pdd">拼多多</option>
+                        <option value="xianyu">闲鱼</option>
+                    </select>
+                </div>
+                <div style="width: 150px;">
+                    <label style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.25rem;">商品类别</label>
+                    <select style="padding: 0.5rem; width: 100%;">
+                        <option value="all">全部分类</option>
+                        <option value="electronics">数码电子</option>
+                        <option value="clothing">服饰鞋包</option>
+                        <option value="home">家居日用</option>
+                        <option value="food">食品生鲜</option>
+                        <option value="virtual">虚拟充值</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-primary" style="padding: 0.5rem 1.5rem; height: 38px;">筛选</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 消费趋势图 (Mock) -->
+        <div class="card">
+            <h2 class="card-title">月度消费趋势</h2>
+            <div class="chart-bar-container">
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 40%;">
+                        <div class="chart-bar-tooltip">¥3,200</div>
+                    </div>
+                    <div class="chart-label">1月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 85%;">
+                        <div class="chart-bar-tooltip">¥8,500</div>
+                    </div>
+                    <div class="chart-label">2月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 30%;">
+                        <div class="chart-bar-tooltip">¥2,100</div>
+                    </div>
+                    <div class="chart-label">3月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 55%;">
+                        <div class="chart-bar-tooltip">¥4,500</div>
+                    </div>
+                    <div class="chart-label">4月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 60%;">
+                        <div class="chart-bar-tooltip">¥5,200</div>
+                    </div>
+                    <div class="chart-label">5月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 90%;">
+                        <div class="chart-bar-tooltip">¥9,800</div>
+                    </div>
+                    <div class="chart-label">6月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 45%;">
+                        <div class="chart-bar-tooltip">¥3,600</div>
+                    </div>
+                    <div class="chart-label">7月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 35%;">
+                        <div class="chart-bar-tooltip">¥2,800</div>
+                    </div>
+                    <div class="chart-label">8月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 50%;">
+                        <div class="chart-bar-tooltip">¥4,100</div>
+                    </div>
+                    <div class="chart-label">9月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 75%;">
+                        <div class="chart-bar-tooltip">¥6,500</div>
+                    </div>
+                    <div class="chart-label">10月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 100%;">
+                        <div class="chart-bar-tooltip">¥12,400</div>
+                    </div>
+                    <div class="chart-label">11月</div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar" style="height: 65%;">
+                        <div class="chart-bar-tooltip">¥5,900</div>
+                    </div>
+                    <div class="chart-label">12月</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- 分类占比 -->
+            <div class="card">
+                <h2 class="card-title">消费分类占比</h2>
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <!-- 简单的饼图表示 -->
+                    <div style="width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(
+                        #3b82f6 0% 40%, 
+                        #10b981 40% 65%, 
+                        #f59e0b 65% 85%, 
+                        #ef4444 85% 100%
+                    );"></div>
+                    
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="width: 12px; height: 12px; background: #3b82f6; display: block; margin-right: 0.5rem; border-radius: 2px;"></span>
+                            <span style="flex: 1;">数码电子</span>
+                            <span style="font-weight: bold;">40%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="width: 12px; height: 12px; background: #10b981; display: block; margin-right: 0.5rem; border-radius: 2px;"></span>
+                            <span style="flex: 1;">服饰鞋包</span>
+                            <span style="font-weight: bold;">25%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="width: 12px; height: 12px; background: #f59e0b; display: block; margin-right: 0.5rem; border-radius: 2px;"></span>
+                            <span style="flex: 1;">家居日用</span>
+                            <span style="font-weight: bold;">20%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="width: 12px; height: 12px; background: #ef4444; display: block; margin-right: 0.5rem; border-radius: 2px;"></span>
+                            <span style="flex: 1;">其他</span>
+                            <span style="font-weight: bold;">15%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 平台份额 -->
+            <div class="card">
+                <h2 class="card-title">各平台消费占比</h2>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>京东</span>
+                            <span style="font-weight: bold;">¥22,500</span>
+                        </div>
+                        <div style="width: 100%; background-color: #f3f4f6; height: 8px; border-radius: 4px;">
+                            <div style="width: 50%; background-color: #e1251b; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>淘宝</span>
+                            <span style="font-weight: bold;">¥15,800</span>
+                        </div>
+                        <div style="width: 100%; background-color: #f3f4f6; height: 8px; border-radius: 4px;">
+                            <div style="width: 35%; background-color: #ff5000; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>拼多多</span>
+                            <span style="font-weight: bold;">¥6,930</span>
+                        </div>
+                        <div style="width: 100%; background-color: #f3f4f6; height: 8px; border-radius: 4px;">
+                            <div style="width: 15%; background-color: #e02e24; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

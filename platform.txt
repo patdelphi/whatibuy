@@ -1,0 +1,15 @@
+淘宝
+登录：https://www.taobao.com/
+订单：https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm?spm=a21bo.jianhua/a.bought.1.5af92a89D35REC
+
+京东
+登录：https://www.jd.com/
+订单：https://order.jd.com/center/list.action
+
+闲鱼
+登录：https://www.goofish.com/
+订单：https://www.goofish.com/bought?spm=a21ybx.home.nav.2.4c053da6TVXTCj
+
+拼多多
+登录：
+订单：
