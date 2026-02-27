@@ -13,12 +13,17 @@ export const Analysis: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [platformFilter, setPlatformFilter] = useState('');
 
     useEffect(() => {
         const fetchStats = async () => {
             setLoading(true);
             try {
-                const data = await api.getStats(startDate || undefined, endDate || undefined);
+                const data = await api.getStats(
+                    startDate || undefined, 
+                    endDate || undefined,
+                    platformFilter || undefined
+                );
                 setStats(data);
             } catch (error) {
                 console.error("Failed to fetch stats:", error);
@@ -29,14 +34,14 @@ export const Analysis: React.FC = () => {
         
         const debounce = setTimeout(fetchStats, 500);
         return () => clearTimeout(debounce);
-    }, [startDate, endDate]);
+    }, [startDate, endDate, platformFilter]);
 
     if (loading && !stats) return <div className="flex justify-center items-center h-64">加载中...</div>;
     if (!stats) return <div className="text-red-500">无法加载数据</div>;
 
     // Prepare data for charts
     const platformData = Object.entries(stats.platform_breakdown).map(([name, value]) => ({
-        name: name === 'taobao' ? '淘宝' : name === 'jd' ? '京东' : name,
+        name: name.toLowerCase() === 'taobao' ? '淘宝' : name.toLowerCase() === 'jd' ? '京东' : name,
         value
     }));
 
@@ -50,8 +55,23 @@ export const Analysis: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Date Filters */}
+            {/* Filters */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">平台:</span>
+                    <select 
+                        className="bg-gray-50 border border-gray-300 text-sm rounded-lg p-2 outline-none"
+                        value={platformFilter}
+                        onChange={(e) => setPlatformFilter(e.target.value)}
+                    >
+                        <option value="">所有平台</option>
+                        <option value="taobao">淘宝</option>
+                        <option value="jd">京东</option>
+                    </select>
+                </div>
+
+                <div className="h-6 w-px bg-gray-200 mx-2"></div>
+
                 <Calendar className="text-gray-500" size={20} />
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">从</span>
@@ -71,9 +91,9 @@ export const Analysis: React.FC = () => {
                         onChange={(e) => setEndDate(e.target.value)}
                     />
                 </div>
-                {(startDate || endDate) && (
+                {(startDate || endDate || platformFilter) && (
                     <button 
-                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        onClick={() => { setStartDate(''); setEndDate(''); setPlatformFilter(''); }}
                         className="text-xs text-blue-600 hover:underline"
                     >
                         清除筛选

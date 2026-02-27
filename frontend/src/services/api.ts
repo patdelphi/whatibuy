@@ -49,10 +49,11 @@ export const api = {
         return response.data;
     },
     
-    getStats: async (startDate?: string, endDate?: string) => {
+    getStats: async (startDate?: string, endDate?: string, platform?: string) => {
         const params: any = {};
         if (startDate) params.start_date = startDate;
         if (endDate) params.end_date = endDate;
+        if (platform) params.platform = platform;
         
         const response = await axios.get<ConsumptionStats>(`${API_BASE_URL}/stats`, { params });
         return response.data;

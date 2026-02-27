@@ -84,6 +84,12 @@ def get_orders(
     params = []
     
     if platform:
+        # Normalize platform input
+        if platform.lower() == 'jd':
+            platform = 'JD'
+        elif platform.lower() == 'taobao':
+            platform = 'Taobao'
+            
         query += " AND platform = ?"
         count_query += " AND platform = ?"
         params.append(platform)
@@ -165,6 +171,12 @@ def export_orders(
     params = []
     
     if platform:
+        # Normalize platform input
+        if platform.lower() == 'jd':
+            platform = 'JD'
+        elif platform.lower() == 'taobao':
+            platform = 'Taobao'
+            
         query += " AND platform = ?"
         params.append(platform)
 
@@ -245,15 +257,27 @@ def export_orders(
 @app.get("/api/stats", response_model=ConsumptionStats)
 def get_stats(
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    end_date: Optional[str] = None,
+    platform: Optional[str] = None
 ):
     conn = get_db_connection()
     cursor = conn.cursor()
     
     # Filter only successful transactions
-    where_clause = "WHERE status = '交易成功'"
-    params = []
+    # Include both Taobao and JD success statuses
+    success_statuses = ['交易成功', '已完成', '已完成\n(充值成功)', '订单状态：已拆分', '完成']
+    placeholders = ', '.join(['?'] * len(success_statuses))
+    where_clause = f"WHERE status IN ({placeholders})"
+    params = list(success_statuses)
     
+    if platform:
+        if platform.lower() == 'jd':
+            platform = 'JD'
+        elif platform.lower() == 'taobao':
+            platform = 'Taobao'
+        where_clause += " AND platform = ?"
+        params.append(platform)
+
     if start_date:
         where_clause += " AND order_date >= ?"
         params.append(start_date)

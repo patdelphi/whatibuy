@@ -86,7 +86,6 @@ export const Orders: React.FC = () => {
                             <option value="">所有平台</option>
                             <option value="taobao">淘宝</option>
                             <option value="jd">京东</option>
-                            <option value="pdd">拼多多</option>
                         </select>
                     </div>
 
@@ -99,9 +98,11 @@ export const Orders: React.FC = () => {
                         >
                             <option value="">所有状态</option>
                             <option value="交易成功">交易成功</option>
+                            <option value="已完成">已完成 (京东)</option>
                             <option value="待发货">待发货</option>
                             <option value="待付款">待付款</option>
                             <option value="交易关闭">交易关闭</option>
+                            <option value="已取消">已取消 (京东)</option>
                             <option value="已签收">已签收</option>
                             <option value="双方已评">双方已评</option>
                         </select>
@@ -192,11 +193,11 @@ export const Orders: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${
-                                                order.platform === 'taobao' ? 'bg-orange-100 text-orange-800' :
-                                                order.platform === 'jd' ? 'bg-red-100 text-red-800' :
+                                                order.platform.toLowerCase() === 'taobao' ? 'bg-orange-100 text-orange-800' :
+                                                order.platform.toLowerCase() === 'jd' ? 'bg-red-100 text-red-800' :
                                                 'bg-gray-100 text-gray-800'
                                             }`}>
-                                                {order.platform === 'taobao' ? '淘宝' : order.platform}
+                                                {order.platform.toLowerCase() === 'taobao' ? '淘宝' : order.platform.toLowerCase() === 'jd' ? '京东' : order.platform}
                                             </span>
                                         </td>
                                     </tr>
