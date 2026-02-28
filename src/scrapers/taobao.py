@@ -89,10 +89,21 @@ def validate_amount(amount):
         pass
     return 0.0
 
-def check_order_exists(cursor, order_id):
+def check_order_exists(cursor, order_id, platform="Taobao"):
     """Checks if an order already exists in the database."""
-    cursor.execute("SELECT 1 FROM orders WHERE platform = ? AND order_id = ?", ("Taobao", order_id))
+    cursor.execute("SELECT 1 FROM orders WHERE platform = ? AND order_id = ?", (platform, order_id))
     return cursor.fetchone() is not None
+
+def clear_platform_data(conn):
+    """Clears all data for Taobao platform only."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE platform = 'Taobao')")
+        cursor.execute("DELETE FROM orders WHERE platform = 'Taobao'")
+        conn.commit()
+        print("Cleared Taobao data successfully.")
+    except Exception as e:
+        print(f"Error clearing data: {e}")
 
 def scrape_taobao(mode_arg=None):
     print("Starting Taobao scraper...")
@@ -100,7 +111,7 @@ def scrape_taobao(mode_arg=None):
     # User Prompt Logic
     print("-" * 50)
     print("请选择抓取模式：")
-    print("1. 全量抓取 (Full Scrape) - 抓取所有页面的数据")
+    print("1. 全量抓取 (Full Scrape) - 清空淘宝历史数据并重新抓取")
     print("2. 增量抓取 (Incremental Scrape) - 遇到数据库中已存在的订单时停止")
     print("3. 跳过抓取 (Skip) - 直接退出")
     print("-" * 50)
@@ -118,18 +129,16 @@ def scrape_taobao(mode_arg=None):
     incremental_mode = (mode == '2')
     max_pages = float('inf') if mode == '1' else 50 # No limit for full scrape
     
-    if incremental_mode:
-        print(">> 已启用增量抓取模式。如果遇到已存在的订单，抓取将自动停止。")
-        # Ensure tables exist
-        conn = get_db_connection()
-        init_tables(conn)
-        conn.close()
+    conn = get_db_connection()
+    init_tables(conn)
+    
+    if not incremental_mode:
+        print(">> 全量模式：正在清空旧的淘宝数据...")
+        clear_platform_data(conn)
     else:
-        print(">> 已启用全量抓取模式。")
-        # Clear DB for full scrape
-        conn = get_db_connection()
-        clear_tables(conn)
-        conn.close()
+        print(">> 已启用增量抓取模式。如果遇到已存在的订单，抓取将自动停止。")
+    
+    conn.close()
 
     with sync_playwright() as p:
         # Launch browser in headful mode for manual login
@@ -310,7 +319,13 @@ def scrape_taobao(mode_arg=None):
                         shop_link = order.query_selector('a[class*="shopInfoName"], a[class*="shop-name"]')
                         if shop_link:
                             shop_name = shop_link.inner_text().strip()
-                            
+                
+                    # Strategy X: Detect Xianyu orders from shop name
+                    if "闲鱼" in shop_name or "Xianyu" in shop_name:
+                        platform_override = "Xianyu"
+                    else:
+                        platform_override = "Taobao"
+
                     # Strategy C: Text heuristic (Fallback)
                     if shop_name == "Unknown":
                         lines = order.inner_text().split('\n')
@@ -389,12 +404,22 @@ def scrape_taobao(mode_arg=None):
                                  break
                                  
                     # --- Validation & Storage ---
+                    # Enhance Xianyu detection
+                    if platform_override == "Taobao":
+                        try:
+                            # Check for Xianyu icon or specific markers
+                            if order.locator(".icon-xianyu, img[src*='xianyu'], img[src*='2.taobao.com']").count() > 0:
+                                platform_override = "Xianyu"
+                        except:
+                            pass
+
                     if order_id == "746737027443604282" or order_id == "12153969408604200":
                         print(f"\n[DEBUG] Found target order: {order_id}")
                         print(f"[DEBUG] Extracted Price: {total_amount}")
                         print(f"[DEBUG] Extracted Date: {order_date}")
                         print(f"[DEBUG] Extracted Shop: {shop_name}")
                         print(f"[DEBUG] Extracted Status: {status}")
+                        print(f"[DEBUG] Extracted Platform: {platform_override}")
                         
                         # Save HTML for analysis
                         try:
@@ -418,22 +443,20 @@ def scrape_taobao(mode_arg=None):
                         total_amount = validate_amount(total_amount)
                         
                         # INCREMENTAL CHECK
-                        if check_order_exists(cursor, order_id):
-                            print(f"  - Order {order_id} already exists.")
+                        # Check existence using the detected platform or generally?
+                        # Since we want to update platform if it was wrong, we might need logic.
+                        # But for now, simple incremental check.
+                        if check_order_exists(cursor, order_id, platform_override):
+                            print(f"  - Order {order_id} already exists ({platform_override}).")
                             consecutive_existing_orders += 1
                             
                             if incremental_mode:
-                                # If we found an existing order in incremental mode, we assume all subsequent orders (which are older) are also in DB.
-                                # However, sometimes order list isn't strictly chronological or there are pinned orders?
-                                # Let's be safe and wait for a few consecutive existing orders before stopping?
-                                # Actually, usually stopping at the first existing one is standard for time-sorted lists.
-                                # But Taobao list is strictly time sorted.
                                 print(">> Found existing order in incremental mode. Stopping scrape.")
                                 stop_scraping = True
                                 break
                         else:
                             # New order
-                            print(f"  - Found NEW Order: {order_id} | {order_date} | {total_amount}")
+                            print(f"  - Found NEW Order: {order_id} | {order_date} | {total_amount} | {platform_override}")
                             consecutive_existing_orders = 0 # Reset counter
                             page_new_orders_count += 1
                             
@@ -441,9 +464,9 @@ def scrape_taobao(mode_arg=None):
                                 cursor.execute('''
                                     INSERT OR IGNORE INTO orders (platform, order_id, order_date, total_amount, status, shop_name)
                                     VALUES (?, ?, ?, ?, ?, ?)
-                                ''', ("Taobao", order_id, order_date, total_amount, status, shop_name))
+                                ''', (platform_override, order_id, order_date, total_amount, status, shop_name))
                                 
-                                cursor.execute("SELECT id FROM orders WHERE platform = ? AND order_id = ?", ("Taobao", order_id))
+                                cursor.execute("SELECT id FROM orders WHERE platform = ? AND order_id = ?", (platform_override, order_id))
                                 db_order_id = cursor.fetchone()[0]
                                 
                                 if product_title != "Unknown":

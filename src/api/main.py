@@ -89,6 +89,8 @@ def get_orders(
             platform = 'JD'
         elif platform.lower() == 'taobao':
             platform = 'Taobao'
+        elif platform.lower() == 'xianyu':
+            platform = 'Xianyu'
             
         query += " AND platform = ?"
         count_query += " AND platform = ?"
@@ -176,6 +178,8 @@ def export_orders(
             platform = 'JD'
         elif platform.lower() == 'taobao':
             platform = 'Taobao'
+        elif platform.lower() == 'xianyu':
+            platform = 'Xianyu'
             
         query += " AND platform = ?"
         params.append(platform)
@@ -265,7 +269,16 @@ def get_stats(
     
     # Filter only successful transactions
     # Include both Taobao and JD success statuses
-    success_statuses = ['交易成功', '已完成', '已完成\n(充值成功)', '订单状态：已拆分', '完成']
+    # Added fuzzy matching or cleaner status check
+    # For now, just add 'Unknown' for Xianyu if needed, but usually we want valid money spent.
+    # Xianyu statuses: '交易成功', 'Unknown' (maybe valid?), '交易 成功' (needs cleaning)
+    
+    # Update cleaning in scraper, but for now be permissive here or clean DB.
+    # Let's clean text in memory for safety or add variations.
+    success_statuses = [
+        '交易成功', '已完成', '已完成\n(充值成功)', '订单状态：已拆分', '完成',
+        '交易 成功', '交易成 功', '交 易成功' # Tolerant to spacing issues
+    ]
     placeholders = ', '.join(['?'] * len(success_statuses))
     where_clause = f"WHERE status IN ({placeholders})"
     params = list(success_statuses)
@@ -275,6 +288,8 @@ def get_stats(
             platform = 'JD'
         elif platform.lower() == 'taobao':
             platform = 'Taobao'
+        elif platform.lower() == 'xianyu':
+            platform = 'Xianyu'
         where_clause += " AND platform = ?"
         params.append(platform)
 

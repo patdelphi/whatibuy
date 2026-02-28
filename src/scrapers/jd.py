@@ -87,13 +87,24 @@ def check_order_exists(cursor, order_id):
     cursor.execute("SELECT 1 FROM orders WHERE platform = ? AND order_id = ?", ("JD", order_id))
     return cursor.fetchone() is not None
 
+def clear_platform_data(conn):
+    """Clears all data for JD platform only."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE platform = 'JD')")
+        cursor.execute("DELETE FROM orders WHERE platform = 'JD'")
+        conn.commit()
+        print("Cleared JD data successfully.")
+    except Exception as e:
+        print(f"Error clearing data: {e}")
+
 def scrape_jd(mode_arg=None):
     print("Starting JD scraper...")
     
     # User Prompt Logic
     print("-" * 50)
     print("请选择抓取模式：")
-    print("1. 全量抓取 (Full Scrape) - 抓取所有页面的数据")
+    print("1. 全量抓取 (Full Scrape) - 清空京东历史数据并重新抓取")
     print("2. 增量抓取 (Incremental Scrape) - 遇到数据库中已存在的订单时停止")
     print("3. 跳过抓取 (Skip) - 直接退出")
     print("-" * 50)
@@ -111,18 +122,16 @@ def scrape_jd(mode_arg=None):
     incremental_mode = (mode == '2')
     max_pages = float('inf') if mode == '1' else 50 
     
-    if incremental_mode:
-        print(">> 已启用增量抓取模式。")
-        conn = get_db_connection()
-        init_tables(conn)
-        conn.close()
+    conn = get_db_connection()
+    init_tables(conn)
+    
+    if not incremental_mode:
+        print(">> 全量模式：正在清空旧的京东数据...")
+        clear_platform_data(conn)
     else:
-        print(">> 已启用全量抓取模式。")
-        conn = get_db_connection()
-        # For full scrape, we might want to be careful not to delete Taobao data
-        # clear_tables only clears JD data
-        clear_tables(conn)
-        conn.close()
+        print(">> 已启用增量抓取模式。")
+    
+    conn.close()
 
     with sync_playwright() as p:
         args = [

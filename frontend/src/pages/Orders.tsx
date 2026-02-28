@@ -86,6 +86,7 @@ export const Orders: React.FC = () => {
                             <option value="">所有平台</option>
                             <option value="taobao">淘宝</option>
                             <option value="jd">京东</option>
+                            <option value="xianyu">闲鱼</option>
                         </select>
                     </div>
 
@@ -195,9 +196,13 @@ export const Orders: React.FC = () => {
                                             <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${
                                                 order.platform.toLowerCase() === 'taobao' ? 'bg-orange-100 text-orange-800' :
                                                 order.platform.toLowerCase() === 'jd' ? 'bg-red-100 text-red-800' :
+                                                order.platform.toLowerCase() === 'xianyu' ? 'bg-yellow-100 text-yellow-800' :
                                                 'bg-gray-100 text-gray-800'
                                             }`}>
-                                                {order.platform.toLowerCase() === 'taobao' ? '淘宝' : order.platform.toLowerCase() === 'jd' ? '京东' : order.platform}
+                                                {order.platform.toLowerCase() === 'taobao' ? '淘宝' : 
+                                                 order.platform.toLowerCase() === 'jd' ? '京东' : 
+                                                 order.platform.toLowerCase() === 'xianyu' ? '闲鱼' : 
+                                                 order.platform}
                                             </span>
                                         </td>
                                     </tr>

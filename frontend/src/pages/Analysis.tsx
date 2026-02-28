@@ -41,7 +41,9 @@ export const Analysis: React.FC = () => {
 
     // Prepare data for charts
     const platformData = Object.entries(stats.platform_breakdown).map(([name, value]) => ({
-        name: name.toLowerCase() === 'taobao' ? '淘宝' : name.toLowerCase() === 'jd' ? '京东' : name,
+        name: name.toLowerCase() === 'taobao' ? '淘宝' : 
+              name.toLowerCase() === 'jd' ? '京东' : 
+              name.toLowerCase() === 'xianyu' ? '闲鱼' : name,
         value
     }));
 
@@ -67,6 +69,7 @@ export const Analysis: React.FC = () => {
                         <option value="">所有平台</option>
                         <option value="taobao">淘宝</option>
                         <option value="jd">京东</option>
+                        <option value="xianyu">闲鱼</option>
                     </select>
                 </div>
 

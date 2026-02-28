@@ -1,3 +1,6 @@
-2026/02/27-15:48:24.920 4bb0 Reusing MANIFEST C:\Users\patde\Documents\Github\whatibuy\data\user_data_jd\Default\Local Storage\leveldb/MANIFEST-000001
-2026/02/27-15:48:24.926 4bb0 Recovering log #7
-2026/02/27-15:48:24.929 4bb0 Reusing old log C:\Users\patde\Documents\Github\whatibuy\data\user_data_jd\Default\Local Storage\leveldb/000007.log 
+2026/02/27-15:51:44.555 c6f8 Reusing MANIFEST C:\Users\patde\Documents\Github\whatibuy\data\user_data_jd\Default\Local Storage\leveldb/MANIFEST-000001
+2026/02/27-15:51:44.561 c6f8 Recovering log #7
+2026/02/27-15:51:44.564 c6f8 Reusing old log C:\Users\patde\Documents\Github\whatibuy\data\user_data_jd\Default\Local Storage\leveldb/000007.log 
+2026/02/27-15:52:02.631 c428 Level-0 table #11: started
+2026/02/27-15:52:02.635 c428 Level-0 table #11: 42130 bytes OK
+2026/02/27-15:52:02.639 c428 Delete type=0 #7
