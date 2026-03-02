@@ -85,5 +85,6 @@ coverage/
 
 # Browser automation
 data/user_data/
+data/user_data_xianyu/
 playwright-report/
 test-results/
